@@ -65,7 +65,7 @@ fi
 
 	echo
 
-	log 7 "clean up"
+	log 7 "clean-up"
 	sudo apt-get autoclean || exit 7
 
 	echo
