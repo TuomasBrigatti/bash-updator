@@ -1,0 +1,87 @@
+#!/usr/bin/bash
+# Check where your bash is located with terminal command "which bash" and replace above line with that
+
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+NOCOLOR="\033[0m"
+
+log() {
+	STEP=$1
+	MSG=$2
+	
+	echo -e "step $STEP: ${GREEN}${MSG}${NOCOLOR}"
+	logger "step $STEP: $MSG"
+}
+
+onFail() {
+	STEP=$1
+	MSG=$2
+	
+	echo -e "step $STEP ERROR: ${RED}${MSG}${NOCOLOR}"
+	logger "step $STEP ERROR: $MSG"
+}
+
+# command line params
+if [[ $1 == "-h" ]]; then
+	echo "usage: $0"
+	echo " -h prints help"
+	echo " -r reboots after successfull update"
+	
+	exit 1
+fi
+
+	log 0 "starting update process"
+
+	echo
+
+(
+	log 1 "pre-configuring packages"
+	sudo dpkg --configure -a  || exit 1
+
+	echo
+
+	log 2 "fix and attempt to correct a system with broken dependencies"
+	sudo apt-get install -f || exit 2
+
+	echo
+
+	log 3 "update apt cache"
+	sudo apt-get update || exit 3
+
+	echo
+
+	log 4 "upgrade packages"
+	sudo apt-get upgrade || exit 4
+
+	echo
+
+	log 5 "distribution upgrade"
+	sudo apt-get dist-upgrade || exit 5
+
+	echo
+
+	log 6 "remove unused packages"
+	sudo apt-get --purge autoremove || exit 6
+
+	echo
+
+	log 7 "clean up"
+	sudo apt-get autoclean || exit 7
+
+	echo
+)
+
+ERR=$?
+
+if [[ ERR -gt 0 ]]; then
+	log "exit" "FAILURE"
+	onFail "Step $ERR failed"
+else
+	log "exit" "SUCCESS"
+
+	if [[ $1 == "-r" ]]; then
+		echo
+		echo "rebooting..."
+		reboot
+	fi
+fi
